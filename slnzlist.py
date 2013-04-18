@@ -78,7 +78,9 @@ def row_is_elementary(row):
 
 
 def rows_in_lex_order(first_row, second_row):
-    for a, b in zip(first_row, second_row):
+    for i in range(len(first_row)):
+        a = first_row[i]
+        b = second_row[i]
         if a < b:
             return False
         elif a > b:
@@ -124,7 +126,7 @@ def generate_good_rows_in_shell(length, distsquared):
                 ):
                 rows.append(row)
 
-        print "Generated {} rows of length {}, d2 {}".format(len(rows), length, distsquared)
+        # print "Generated {} rows of length {}, d2 {}".format(len(rows), length, distsquared)
 
         row_cache_for_length[distsquared] = rows
 
@@ -176,12 +178,12 @@ def generate_lattice_matrices_in_shell_with_row_cache(columns, rows, distsquared
             yield []
     elif rows > 0:
         for i in range(distsquared):
-            # distsquared - i counts down from distsquared to 1
-            row_generator = generate_good_rows_in_shell(columns, distsquared - i)
-            for row in row_generator:
-                submatrix_shell = generate_lattice_matrices_in_shell(columns, rows - 1, i)
+            submatrix_shell = generate_lattice_matrices_in_shell(columns, rows - 1, i)
 
-                for submatrix in submatrix_shell:
+            for submatrix in submatrix_shell:
+                # distsquared - i counts down from distsquared to 1
+                row_generator = generate_good_rows_in_shell(columns, distsquared - i)
+                for row in row_generator:
                     if len(submatrix) == 0:
                         yield [row]
                     elif rows_in_lex_order(row, submatrix[0]):
@@ -338,8 +340,8 @@ def test_suite():
 def test_suite_matrices():
     arguments = {
         'length': 4,
-        'start': 7,
-        'stop': 10,
+        'start': 1,
+        'stop': 12,
         'print_matrices': False
     }
 
