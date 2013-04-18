@@ -155,30 +155,7 @@ def generate_lattice_matrices_in_shell(columns, rows, distsquared):
             yield []
     elif rows > 0:
         for i in range(distsquared):
-            # distsquared - i counts down from distsquared to 1
-            row_generator = generate_lattice_shell(columns, distsquared - i)
-            for row in row_generator:
-                if (not row_is_positive(row)
-                    or row_is_elementary(row)
-                    ):
-                    continue
-
-                submatrix_shell = generate_lattice_matrices_in_shell(columns, rows - 1, i)
-
-                for submatrix in submatrix_shell:
-                    if len(submatrix) == 0:
-                        yield [row]
-                    elif rows_in_lex_order(row, submatrix[0]):
-                        yield [row] + submatrix
-
-
-def generate_lattice_matrices_in_shell_with_row_cache(columns, rows, distsquared):
-    if rows == 0:
-        if distsquared == 0:
-            yield []
-    elif rows > 0:
-        for i in range(distsquared):
-            submatrix_shell = generate_lattice_matrices_in_shell_with_row_cache(columns, rows - 1, i)
+            submatrix_shell = generate_lattice_matrices_in_shell(columns, rows - 1, i)
 
             for submatrix in submatrix_shell:
                 # distsquared - i counts down from distsquared to 1
@@ -266,41 +243,11 @@ def test_lattice_by_rows(length, start, stop, print_matrices=False):
 
     # print row_boundaries
 
-    print "Testing matrices with internal row pruning (pos and elem):"
-
-    time_start = time.clock()
-    for distsquared in range(start, stop):
-        for mat in generate_lattice_matrices_in_shell(length, length, distsquared):
-            totalcount += 1
-
-            det = determinant(mat)
-
-            if (det == 1 or det == -1):
-                count += 1
-                if print_matrices:
-                    print_matrix(transpose(mat))
-                    print
-
-    time_end = time.clock()
-    print "Time: {} s".format(time_end - time_start)
-
-    print "{} valid\n{} generated\n".format(count, totalcount)
-
-
-def test_lattice_by_rows_with_caching(length, start, stop, print_matrices=False):
-    count = 0
-    totalcount = 0
-
-    row_indices = range(length)
-    row_boundaries = range(0, length * length + 1, length)
-
-    # print row_boundaries
-
     print "Testing matrices with internal row pruning (pos and elem), caching:"
 
     time_start = time.clock()
     for distsquared in range(start, stop):
-        for mat in generate_lattice_matrices_in_shell_with_row_cache(length, length, distsquared):
+        for mat in generate_lattice_matrices_in_shell(length, length, distsquared):
             totalcount += 1
 
             det = determinant(mat)
@@ -331,9 +278,9 @@ def test_suite():
 
 def test_suite_matrices():
     arguments = {
-        'length': 4,
+        'length': 3,
         'start': 1,
-        'stop': 12,
+        'stop': 51,
         'print_matrices': False
     }
 
@@ -341,7 +288,6 @@ def test_suite_matrices():
         # test_direct_lattice_shell,
         # test_direct_lattice_internal_chop,
         test_lattice_by_rows,
-        test_lattice_by_rows_with_caching,
     ]
 
     print "Testing matrix generation: dim {length}, start {start}, stop {stop}".format(**arguments)
