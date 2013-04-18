@@ -103,6 +103,35 @@ def print_matrix_row(row):
         print "{:>3}".format(element),
     print '|'
 
+# Good row caching
+
+row_cache = {}
+
+def generate_good_rows_in_shell(length, distsquared):
+    if length not in row_cache:
+        row_cache[length] = {}
+
+    row_cache_for_length = row_cache[length]
+
+    if distsquared not in row_cache_for_length:
+        row_cache_for_length[distsquared] = []
+        rows = []
+        # generate rows, cache good ones
+        row_generator = generate_lattice_shell(length, distsquared)
+        for row in row_generator:
+            if (row_is_positive(row)
+                and not row_is_elementary(row)
+                ):
+                rows.append(row)
+
+        print "Generated {} rows of length {}, d2 {}".format(len(rows), length, distsquared)
+
+        row_cache_for_length[distsquared] = rows
+
+    for row in row_cache_for_length[distsquared]:
+        yield row
+
+
 def generate_lattice_shell(n, distsquared):
     if n == 0:
         if distsquared == 0:
@@ -128,10 +157,28 @@ def generate_lattice_matrices_in_shell(columns, rows, distsquared):
             row_generator = generate_lattice_shell(columns, distsquared - i)
             for row in row_generator:
                 if (not row_is_positive(row)
-                    # or row_is_elementary(row)
+                    or row_is_elementary(row)
                     ):
                     continue
 
+                submatrix_shell = generate_lattice_matrices_in_shell(columns, rows - 1, i)
+
+                for submatrix in submatrix_shell:
+                    if len(submatrix) == 0:
+                        yield [row]
+                    elif rows_in_lex_order(row, submatrix[0]):
+                        yield [row] + submatrix
+
+
+def generate_lattice_matrices_in_shell_with_row_cache(columns, rows, distsquared):
+    if rows == 0:
+        if distsquared == 0:
+            yield []
+    elif rows > 0:
+        for i in range(distsquared):
+            # distsquared - i counts down from distsquared to 1
+            row_generator = generate_good_rows_in_shell(columns, distsquared - i)
+            for row in row_generator:
                 submatrix_shell = generate_lattice_matrices_in_shell(columns, rows - 1, i)
 
                 for submatrix in submatrix_shell:
@@ -225,7 +272,7 @@ def test_lattice_by_rows(length, start, stop, print_matrices=False):
 
     # print row_boundaries
 
-    print "Testing matrices with internal row pruning:"
+    print "Testing matrices with internal row pruning (pos and elem):"
 
     time_start = time.clock()
     for distsquared in range(start, stop):
@@ -246,30 +293,84 @@ def test_lattice_by_rows(length, start, stop, print_matrices=False):
     print "{} valid\n{} generated\n".format(count, totalcount)
 
 
+def test_lattice_by_rows_with_caching(length, start, stop, print_matrices=False):
+    count = 0
+    totalcount = 0
+
+    row_indices = range(length)
+    row_boundaries = range(0, length * length + 1, length)
+
+    # print row_boundaries
+
+    print "Testing matrices with internal row pruning (pos and elem), caching:"
+
+    time_start = time.clock()
+    for distsquared in range(start, stop):
+        for mat in generate_lattice_matrices_in_shell_with_row_cache(length, length, distsquared):
+            totalcount += 1
+
+            det = determinant(mat)
+
+            if (det == 1 or det == -1):
+                count += 1
+                if print_matrices:
+                    print_matrix(transpose(mat))
+                    print
+
+    time_end = time.clock()
+    print "Time: {} s".format(time_end - time_start)
+
+    print "{} valid\n{} generated\n".format(count, totalcount)
+
+
 def test_suite():
+
+    print "Testing at {}".format(datetime.datetime.now())
+    print
+
+    test_suite_matrices()
+
+    # test_suite_row_caching()
+
+    print "Tests finished.\n*****"
+    print
+
+def test_suite_matrices():
     arguments = {
-        'length': 3,
-        'start': 0,
+        'length': 4,
+        'start': 7,
         'stop': 10,
         'print_matrices': False
     }
 
     tests = [
-        test_direct_lattice_shell,
-        test_direct_lattice_internal_chop,
+        # test_direct_lattice_shell,
+        # test_direct_lattice_internal_chop,
         test_lattice_by_rows,
+        test_lattice_by_rows_with_caching,
     ]
 
-    print "Testing at {}".format(datetime.datetime.now())
+    print "Testing matrix generation: dim {length}, start {start}, stop {stop}".format(**arguments)
     print
 
     for fn in tests:
         fn(**arguments)
 
 
-    print "Tests finished.\n*****"
-    print
+def test_suite_row_caching():
+    count = 0
+    for i in range(0,17):
+        for row in generate_good_rows_in_shell(4, i):
+            # print row
+            count += 1
+    print count
 
+    for i in range(0,17):
+        for row in generate_good_rows_in_shell(4, i):
+            # print row
+            count += 1
+
+    print count
 
 def main(argv = None):
     """Main routine for the script."""
