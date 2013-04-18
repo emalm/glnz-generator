@@ -5,6 +5,8 @@ import sys
 import time
 import datetime
 
+# Square root lookups
+
 square_root_max = 0
 square_root_list = [0]
 
@@ -18,20 +20,12 @@ def square_root_lookup(n):
 
     return square_root_list[n]
 
-def square_root_test():
-    print square_root_lookup(0)
-    print square_root_lookup(1)
-    print square_root_lookup(2)
-    print square_root_lookup(14)
-    print len(square_root_list)
 
-    print square_root_lookup(144)
-
-    print square_root_lookup(146)
-    print len(square_root_list)
+# Matrix utilities
 
 def transpose(matrix):
     return [list(row) for row in zip(*matrix)]
+
 
 def determinant(matrix):
     if matrix == []:
@@ -49,11 +43,13 @@ def determinant(matrix):
             sign *= -1
         return sum
 
+
 def matrix_has_positive_rows(matrix):
     for row in matrix:
         if not row_is_positive(row):
             return False
     return True
+
 
 def row_is_positive(row):
     for element in row:
@@ -64,6 +60,7 @@ def row_is_positive(row):
         elif element == 0:
             continue
     return True
+
 
 def row_is_elementary(row):
     zero_count = 0
@@ -89,15 +86,18 @@ def rows_in_lex_order(first_row, second_row):
             continue
     return True
 
+
 def matrix_rows_are_in_lex_order(matrix):
     for i in range(len(matrix) - 1):
         if not rows_in_lex_order(matrix[i], matrix[i + 1]):
             return False
     return True
 
+
 def print_matrix(matrix):
     for row in matrix:
         print_matrix_row(row)
+
 
 def print_matrix_row(row):
     print '|',
@@ -134,6 +134,8 @@ def generate_good_rows_in_shell(length, distsquared):
         yield row
 
 
+# Lattice point enumeration
+
 def generate_lattice_shell(n, distsquared):
     if n == 0:
         if distsquared == 0:
@@ -148,6 +150,9 @@ def generate_lattice_shell(n, distsquared):
                     yield [-i] + sublist
                 else:
                     yield [0] + sublist
+
+
+# Matrix generation
 
 def generate_lattice_matrices_in_shell(columns, rows, distsquared):
     if rows == 0:
@@ -168,71 +173,7 @@ def generate_lattice_matrices_in_shell(columns, rows, distsquared):
                         yield [row] + submatrix
 
 
-def test_direct_lattice_shell(length, start, stop, print_matrices=False):
-    count = 0
-    totalcount = 0
-
-    row_indices = range(length)
-    row_boundaries = range(0, length * length + 1, length)
-
-    # print row_boundaries
-
-    print "Testing matrices direct from lattice:"
-
-    time_start = time.clock()
-    for distsquared in range(start, stop):
-        for entry in generate_lattice_shell(length * length, distsquared):
-            totalcount += 1
-
-            mat = [
-                entry[row_boundaries[i]:row_boundaries[i + 1]]
-                for i in row_indices]
-
-            if (not matrix_has_positive_rows(mat)
-                or not matrix_rows_are_in_lex_order(mat)):
-                continue
-
-            det = determinant(mat)
-
-            if (det == 1 or det == -1):
-                count += 1
-                if print_matrices:
-                    print_matrix(transpose(mat))
-                    print
-
-    time_end = time.clock()
-    print "Time: {} s".format(time_end - time_start)
-
-    print "{} valid\n{} generated\n".format(count, totalcount)
-
-def test_direct_lattice_internal_chop(length, start, stop, print_matrices=False):
-    count = 0
-    totalcount = 0
-
-    row_indices = range(length)
-    row_boundaries = range(0, length * length + 1, length)
-
-    # print row_boundaries
-
-    print "Testing matrices with direct generation, then screening:"
-
-    time_start = time.clock()
-    for distsquared in range(start, stop):
-        for mat in generate_lattice_matrices_in_shell_alt(length, length, distsquared):
-            totalcount += 1
-
-            det = determinant(mat)
-
-            if (det == 1 or det == -1):
-                count += 1
-                if print_matrices:
-                    print_matrix(transpose(mat))
-                    print
-
-    time_end = time.clock()
-    print "Time: {} s".format(time_end - time_start)
-
-    print "{} valid\n{} generated\n".format(count, totalcount)
+# Tests
 
 def test_lattice_by_rows(length, start, stop, print_matrices=False):
     count = 0
@@ -280,13 +221,11 @@ def test_suite_matrices():
     arguments = {
         'length': 3,
         'start': 1,
-        'stop': 51,
+        'stop': 26,
         'print_matrices': False
     }
 
     tests = [
-        # test_direct_lattice_shell,
-        # test_direct_lattice_internal_chop,
         test_lattice_by_rows,
     ]
 
@@ -311,6 +250,20 @@ def test_suite_row_caching():
             count += 1
 
     print count
+
+def test_suite_square_root():
+    print square_root_lookup(0)
+    print square_root_lookup(1)
+    print square_root_lookup(2)
+    print square_root_lookup(14)
+    print len(square_root_list)
+
+    print square_root_lookup(144)
+
+    print square_root_lookup(146)
+    print len(square_root_list)
+
+# Main routine
 
 def main(argv = None):
     """Main routine for the script."""
