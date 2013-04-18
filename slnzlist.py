@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import time
 
 square_root_max = 0
 square_root_list = [0]
@@ -28,6 +29,25 @@ def square_root_test():
     print square_root_lookup(146)
     print len(square_root_list)
 
+def transpose(matrix):
+    return [list(row) for row in zip(*matrix)]
+
+def determinant(matrix):
+    if matrix == []:
+        return 1
+    elif len(matrix) == 1:
+        return matrix[0][0]
+    elif len(matrix) == 2:
+        return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]
+    else:
+        trows = [row[1:] for row in matrix]
+        sum = 0
+        sign = 1
+        for index in xrange(len(matrix)):
+            sum += sign * matrix[index][0] * determinant(trows[:index] + trows[index + 1:])
+            sign *= -1
+        return sum
+
 def det_three_by_three(matrix):
     return (
         matrix[0][0] * (matrix[1][1] * matrix[2][2]
@@ -38,26 +58,36 @@ def det_three_by_three(matrix):
             - matrix[1][1] * matrix[2][0])
         )
 
-def matrix_is_positive(matrix):
-    for i in range(len(matrix)):
-        for j in range(len(matrix)):
-            if matrix[j][i] < 0:
-                return False
-            elif matrix[j][i] > 0:
-                break
-            elif matrix[j][i] == 0:
-                continue
+def matrix_has_positive_rows(matrix):
+    for row in matrix:
+        if not row_is_positive(row):
+            return False
     return True
 
-def matrix_columns_are_in_lex_order(matrix):
+def row_is_positive(row):
+    for element in row:
+        if element < 0:
+            return False
+        elif element > 0:
+            break
+        elif element == 0:
+            continue
+    return True
+
+def rows_in_lex_order(first_row, second_row):
+    for a, b in zip(first_row, second_row):
+        if a < b:
+            return False
+        elif a > b:
+            break
+        elif a == b:
+            continue
+    return True
+
+def matrix_rows_are_in_lex_order(matrix):
     for i in range(len(matrix) - 1):
-        for j in range(len(matrix)):
-            if matrix[j][i] < matrix[j][i + 1]:
-                return False
-            elif matrix[j][i] > matrix[j][i + 1]:
-                break
-            elif matrix[j][i] == matrix[j][i + 1]:
-                continue
+        if not rows_in_lex_order(matrix[i], matrix[i + 1]):
+            return False
     return True
 
 def print_matrix(matrix):
@@ -85,24 +115,97 @@ def generate_lattice_shell(n, distsquared):
                 else:
                     yield [0] + sublist
 
+def generate_lattice_matrices_in_shell(columns, rows, distsquared):
+    if rows == 0:
+        if distsquared == 0:
+            yield []
+    elif rows > 0:
+        for i in range(distsquared):
+            row_generator = generate_lattice_shell(columns, distsquared - i)
+            for row in row_generator:
+                if not row_is_positive(row):
+                    continue
+                submatrix_shell = generate_lattice_matrices_in_shell(columns, rows - 1, i)
+                for submatrix in submatrix_shell:
+                    if len(submatrix) == 0:
+                        yield [row]
+                    elif rows_in_lex_order(row, submatrix[0]):
+                        yield [row] + submatrix
+
+
+def generate_lattice_matrices_in_shell_alt(columns, rows, distsquared):
+    for elementlist in generate_lattice_shell(columns * rows, distsquared):
+        mat = [elementlist[columns * i:columns * (i + 1)] for i in range(rows)]
+        if matrix_has_positive_rows(mat) and matrix_rows_are_in_lex_order(mat):
+            yield mat
+
 def main(argv = None):
     """Main routine for the script."""
     if argv is None:
         argv = sys.argv
 
     count = 0
+    totalcount = 0
 
-    for distsquared in range(0, 25):
-        for l in generate_lattice_shell(9, distsquared):
-            mat = [l[0:3], l[3:6], l[6:9]]
-            det = det_three_by_three(mat)
-            if (det == 1 or det == -1) and matrix_is_positive(mat) and matrix_columns_are_in_lex_order(mat):
+    time_start = time.clock()
+    for distsquared in range(0, 10):
+        for l in generate_lattice_shell(16, distsquared):
+            mat = [l[0:4], l[4:8], l[8:12], l[12:16]]
+            totalcount += 1
+
+            if not matrix_has_positive_rows(mat) or not matrix_rows_are_in_lex_order(mat):
+                continue
+
+            det = determinant(mat)
+
+            if (det == 1 or det == -1):
                 count += 1
                 # print det
-                print_matrix(mat)
-                print
+                # print_matrix(transpose(mat))
+                # print
+    time_end = time.clock()
+    print time_end - time_start
 
-    print count
+    print count, totalcount
+
+    count = 0
+    totalcount = 0
+
+    time_start = time.clock()
+    for distsquared in range(0, 10):
+        for mat in generate_lattice_matrices_in_shell(4, 4, distsquared):
+            totalcount += 1
+            det = determinant(mat)
+
+            if (det == 1 or det == -1):
+                count += 1
+                # print det
+                # print_matrix(transpose(mat))
+                # print
+    time_end = time.clock()
+    print time_end - time_start
+
+    print count, totalcount
+
+    count = 0
+    totalcount = 0
+
+    time_start = time.clock()
+    for distsquared in range(0, 10):
+        for mat in generate_lattice_matrices_in_shell_alt(4, 4, distsquared):
+            totalcount += 1
+            det = determinant(mat)
+
+            if (det == 1 or det == -1):
+                count += 1
+                # print det
+                # print_matrix(transpose(mat))
+                # print
+    time_end = time.clock()
+    print time_end - time_start
+
+    print count, totalcount
+
 
 if __name__ == '__main__':
     sys.exit(main())
