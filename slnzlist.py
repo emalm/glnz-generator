@@ -178,26 +178,18 @@ def generate_lattice_matrices_in_shell_with_row_cache(columns, rows, distsquared
             yield []
     elif rows > 0:
         for i in range(distsquared):
-            submatrix_shell = generate_lattice_matrices_in_shell(columns, rows - 1, i)
+            submatrix_shell = generate_lattice_matrices_in_shell_with_row_cache(columns, rows - 1, i)
 
             for submatrix in submatrix_shell:
                 # distsquared - i counts down from distsquared to 1
                 row_generator = generate_good_rows_in_shell(columns, distsquared - i)
+
                 for row in row_generator:
                     if len(submatrix) == 0:
                         yield [row]
                     elif rows_in_lex_order(row, submatrix[0]):
                         yield [row] + submatrix
 
-
-def generate_lattice_matrices_in_shell_alt(columns, rows, distsquared):
-    row_indices = range(rows)
-    row_boundaries = range(0, columns * rows + 1, columns)
-
-    for elementlist in generate_lattice_shell(columns * rows, distsquared):
-        mat = [elementlist[row_boundaries[i]:row_boundaries[i + 1]] for i in row_indices]
-        if matrix_has_positive_rows(mat) and matrix_rows_are_in_lex_order(mat):
-            yield mat
 
 def test_direct_lattice_shell(length, start, stop, print_matrices=False):
     count = 0

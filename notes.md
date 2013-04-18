@@ -10,7 +10,7 @@ Effects of generating at the row level, pruning out bad rows first:
 - vast performance gains at larger sizes, weights
 - WAY faster to generate submatrix first, then generate row and compare, especially with caching
     - 3x3: factor of 5
-    - 4x4: factor of 5 for 1 to 12
+    - 4x4: factor of 18 for 1 to 12
 
 Average time to generate a matrix, with row pruning?
 - length 2:
