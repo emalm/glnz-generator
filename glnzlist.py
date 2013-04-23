@@ -2,12 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import sys
-import time
-import datetime
 import argparse
 import textwrap
 
-version = '0.01'
+version = '0.1'
 
 # Square root lookups
 
@@ -15,6 +13,7 @@ square_root_max = 0
 square_root_list = [0]
 
 def square_root_lookup(n):
+    """Compute floor(sqrt(n)) for nonnegative integers n with a lookup table."""
     global square_root_max
 
     # current list reaches to index (square_root_max + 1)^2 - 1
@@ -28,10 +27,12 @@ def square_root_lookup(n):
 # Matrix utilities
 
 def transpose(matrix):
+    """Compute the transpose of a matrix."""
     return [list(row) for row in zip(*matrix)]
 
 
 def determinant(matrix):
+    """Compute the determinant of a square matrix recursively."""
     if matrix == []:
         return 1
     elif len(matrix) == 1:
@@ -49,6 +50,7 @@ def determinant(matrix):
 
 
 def matrix_has_positive_rows(matrix):
+    """Check that all rows of a matrix start with a nonnegative number."""
     for row in matrix:
         if not row_is_positive(row):
             return False
@@ -56,6 +58,7 @@ def matrix_has_positive_rows(matrix):
 
 
 def row_is_positive(row):
+    """Check that a row starts with a nonnegative number."""
     for element in row:
         if element < 0:
             return False
@@ -67,6 +70,7 @@ def row_is_positive(row):
 
 
 def row_is_elementary(row):
+    """Check whethe a row is elementary (that is, a standard basis vector)."""
     zero_count = 0
     one_count = 0
     for element in row:
@@ -79,6 +83,7 @@ def row_is_elementary(row):
 
 
 def rows_in_lex_order(first_row, second_row):
+    """Check that a pair of rows is in decreasing lexicographic order."""
     for i in range(len(first_row)):
         a = first_row[i]
         b = second_row[i]
@@ -92,6 +97,7 @@ def rows_in_lex_order(first_row, second_row):
 
 
 def matrix_rows_are_in_lex_order(matrix):
+    """Check that the rows of a matrix are in decreasing lexicographic order."""
     for i in range(len(matrix) - 1):
         if not rows_in_lex_order(matrix[i], matrix[i + 1]):
             return False
@@ -99,6 +105,7 @@ def matrix_rows_are_in_lex_order(matrix):
 
 
 def pretty_matrix(matrix):
+    """Pretty print a matrix."""
     output = ''
     for row in matrix:
         output += pretty_matrix_row(row)
@@ -106,18 +113,28 @@ def pretty_matrix(matrix):
 
     return output
 
-def pretty_matrix_row(row, width=3):
+
+def pretty_matrix_row(row):
     output = '| '
+
+    # maybe parametrize this in the future
+    template = "{:>3} "
+
     for element in row:
-        output += "{:>3} ".format(element)
+        output += template.format(element)
+
     output += '|'
     return output
 
+
 # Cache good rows
 
+# Row cache
+# dictionary of dictionaries: first key is row length, second is row weight
 row_cache = {}
 
 def generate_good_rows_in_shell(length, distsquared):
+    """Generate all 'good' rows (positive, non-elementary) for a given length and weight. Caches lists of rows for future reference."""
     if length not in row_cache:
         row_cache[length] = {}
 
@@ -126,15 +143,15 @@ def generate_good_rows_in_shell(length, distsquared):
     if distsquared not in row_cache_for_length:
         row_cache_for_length[distsquared] = []
         rows = []
+
         # generate rows, cache good ones
         row_generator = generate_lattice_shell(length, distsquared)
+
         for row in row_generator:
             if (row_is_positive(row)
                 and not row_is_elementary(row)
                 ):
                 rows.append(row)
-
-        # print "Generated {} rows of length {}, d2 {}".format(len(rows), length, distsquared)
 
         row_cache_for_length[distsquared] = rows
 
@@ -145,6 +162,7 @@ def generate_good_rows_in_shell(length, distsquared):
 # Lattice point enumeration
 
 def generate_lattice_shell(n, distsquared):
+    """Generate all lattice points of a given length and weight."""
     if n == 0:
         if distsquared == 0:
             yield []
@@ -163,14 +181,17 @@ def generate_lattice_shell(n, distsquared):
 # Matrix generation
 
 def generate_lattice_matrices_in_shell(columns, rows, distsquared):
+    """Generate all normalized, non-degenerate matrices of a given size and weight."""
     if rows == 0:
         if distsquared == 0:
             yield []
     elif rows > 0:
         for i in range(distsquared):
+            # first, generate rest of matrix rows
             submatrix_shell = generate_lattice_matrices_in_shell(columns, rows - 1, i)
 
             for submatrix in submatrix_shell:
+                # now iterate through (probably cached) rows
                 # distsquared - i counts down from distsquared to 1
                 row_generator = generate_good_rows_in_shell(columns, distsquared - i)
 
@@ -180,135 +201,40 @@ def generate_lattice_matrices_in_shell(columns, rows, distsquared):
                     elif rows_in_lex_order(row, submatrix[0]):
                         yield [row] + submatrix
 
+
 def generate_all_matrices(size, startweight, endweight):
+    """Generate all square matrices in a range of weights."""
     for wt in range(startweight, endweight + 1):
         for mat in generate_lattice_matrices_in_shell(size, size, wt):
             yield mat
 
-# Tests
 
-def test_lattice_by_rows(length, start, stop, print_matrices=False):
-    count = 0
-    totalcount = 0
+# Output formatting classes
 
-    row_indices = range(length)
-    row_boundaries = range(0, length * length + 1, length)
-
-    # print row_boundaries
-
-    print "Testing matrices with internal row pruning (pos and elem), caching:"
-
-    time_start = time.clock()
-    for distsquared in range(start, stop):
-        for mat in generate_lattice_matrices_in_shell(length, length, distsquared):
-            totalcount += 1
-
-            det = determinant(mat)
-
-            if (det == 1 or det == -1):
-                count += 1
-                if print_matrices:
-                    print pretty_matrix(transpose(mat))
-                    print
-
-    time_end = time.clock()
-    print "Time: {} s".format(time_end - time_start)
-
-    print "{} generated\n{} with det +/-1\n".format(totalcount, count)
-
-
-def test_suite():
-
-    print "Testing at {}".format(datetime.datetime.now())
-    print
-
-    test_suite_matrices()
-
-    # test_suite_row_caching()
-
-    print "Tests finished.\n*****"
-    print
-
-def test_suite_matrices():
-    arguments = {
-        'length': 2,
-        'start': 1,
-        'stop': 50,
-        'print_matrices': True
-    }
-
-    tests = [
-        test_lattice_by_rows,
-    ]
-
-    print "Testing matrix generation: dim {length}, start {start}, stop {stop}".format(**arguments)
-    print
-
-    for fn in tests:
-        fn(**arguments)
-
-
-def test_suite_row_caching():
-    count = 0
-    for i in range(0,17):
-        for row in generate_good_rows_in_shell(4, i):
-            # print row
-            count += 1
-    print count
-
-    for i in range(0,17):
-        for row in generate_good_rows_in_shell(4, i):
-            # print row
-            count += 1
-
-    print count
-
-def test_suite_square_root():
-    print square_root_lookup(0)
-    print square_root_lookup(1)
-    print square_root_lookup(2)
-    print square_root_lookup(14)
-    print len(square_root_list)
-
-    print square_root_lookup(144)
-
-    print square_root_lookup(146)
-    print len(square_root_list)
-
-
-class Formatter(object):
-    @classmethod
-    def start_list(cls):
-        pass
-
-    @classmethod
-    def end_list(cls):
-        pass
-
-    @classmethod
-    def matrix(cls, mat):
-        pass
-
-    @classmethod
-    def stats(cls, stats):
-        pass
-
-
-class PrettyFormatter(Formatter):
-    @classmethod
-    def start_list(cls):
+class PrettyFormatter(object):
+    """Output matrices and optional stats in a human-readable format."""
+    @staticmethod
+    def start_list():
         return ""
 
-    @classmethod
-    def end_list(cls):
+    @staticmethod
+    def end_list():
         return ""
 
-    @classmethod
-    def matrix(cls, mat):
+    @staticmethod
+    def start_output():
+        return ""
+
+    @staticmethod
+    def end_output():
+        return ""
+
+    @staticmethod
+    def matrix(mat):
         return pretty_matrix(mat) + '\n'
 
-    @classmethod
-    def stats(cls, stats):
+    @staticmethod
+    def stats(stats):
         lines = []
 
         if 'dim' in stats:
@@ -331,22 +257,33 @@ class PrettyFormatter(Formatter):
 
         return '\n'.join(lines)
 
-class ListFormatter(Formatter):
-    @classmethod
-    def start_list(cls):
-        return "["
 
-    @classmethod
-    def end_list(cls):
-        return "]"
+class ListFormatter(object):
+    """Output matrices in a list, packaged in a dictionary with optional generation statistics."""
+    @staticmethod
+    def start_list():
+        return "'matrix_list': [\n"
 
-    @classmethod
-    def matrix(cls, mat):
+    @staticmethod
+    def end_list():
+        return "],\n"
+
+    @staticmethod
+    def start_output():
+        return "{\n"
+
+    @staticmethod
+    def end_output():
+        return "}\n"
+
+    @staticmethod
+    def matrix(mat):
         return '\t' + str(mat) + ',\n'
 
-    @classmethod
-    def stats(cls, stats):
-        return str(stats)
+    @staticmethod
+    def stats(stats):
+        return "'stats': " + str(stats) + ",\n"
+
 
 format_lookup = {
     'pretty': PrettyFormatter,
@@ -356,6 +293,7 @@ format_lookup = {
 }
 
 def print_matrix_list(dim, min_weight, max_weight, format, stats, max_count=0):
+    """Print all valid matrices of a given size in a weight range."""
     formatter = format_lookup[format]
 
     count_valid = 0
@@ -363,7 +301,8 @@ def print_matrix_list(dim, min_weight, max_weight, format, stats, max_count=0):
 
     check_count = (max_count > 0)
 
-    print formatter.start_list()
+    print formatter.start_output(),
+    print formatter.start_list(),
 
     for mat in generate_all_matrices(dim, min_weight, max_weight):
         count_all += 1
@@ -377,7 +316,7 @@ def print_matrix_list(dim, min_weight, max_weight, format, stats, max_count=0):
         if check_count and count_valid >= max_count:
             break
 
-    print formatter.end_list()
+    print formatter.end_list(),
 
     if stats:
         stat_dict = {
@@ -392,6 +331,8 @@ def print_matrix_list(dim, min_weight, max_weight, format, stats, max_count=0):
             stat_dict['max_count'] = max_count
 
         print formatter.stats(stat_dict),
+
+    print formatter.end_output(),
 
 
 # Main routine
@@ -415,13 +356,13 @@ def main(argv = None):
 
     parser.add_argument('-n', '--dim', type=int, default=3, help='matrix dimension')
 
-    parser.add_argument('-a', '--min-weight', type=int, default=1, help='starting matrix weight')
+    parser.add_argument('-a', '--min-weight', type=int, default=10, help='starting matrix weight')
 
     parser.add_argument('-z', '--max-weight', type=int, default=None, help='ending matrix weight')
 
     parser.add_argument('-c', '--max-count', type=int, default=0, help='maximum number of matrices to generate')
 
-    parser.add_argument('-s', '--stats', action='store_false', help='print some stats when done')
+    parser.add_argument('-s', '--stats', action='store_true', help='print some stats when done')
 
     parser.add_argument('-f', '--format',
         choices=['pretty', 'p', 'list', 'l'],
@@ -429,16 +370,15 @@ def main(argv = None):
         help='output format')
         
     parser.add_argument('-v', '--version', action='version',
-                        version='%(prog)s' + version)
+                        version='%(prog)s, v' + version)
                         
     args = parser.parse_args(argv[1:])
-    # print args
 
     if args.max_weight is None:
         args.max_weight = args.min_weight
 
-
     print_matrix_list(**vars(args))
     
+
 if __name__ == '__main__':
     sys.exit(main())
