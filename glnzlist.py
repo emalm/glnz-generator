@@ -50,7 +50,7 @@ def determinant(matrix):
 
 
 def matrix_has_positive_rows(matrix):
-    """Check that all rows of a matrix start with a nonnegative number."""
+    """Check that each row of a matrix has its first nonzero entry positive."""
     for row in matrix:
         if not row_is_positive(row):
             return False
@@ -58,7 +58,7 @@ def matrix_has_positive_rows(matrix):
 
 
 def row_is_positive(row):
-    """Check that a row starts with a nonnegative number."""
+    """Check that a row's first nonzero entry is positive."""
     for element in row:
         if element < 0:
             return False
@@ -356,9 +356,9 @@ def main(argv = None):
 
     parser.add_argument('-n', '--dim', type=int, default=3, help='matrix dimension')
 
-    parser.add_argument('-a', '--min-weight', type=int, default=10, help='starting matrix weight')
+    parser.add_argument('-a', '--min-weight', type=int, help='starting matrix weight')
 
-    parser.add_argument('-z', '--max-weight', type=int, default=None, help='ending matrix weight')
+    parser.add_argument('-z', '--max-weight', type=int, help='ending matrix weight')
 
     parser.add_argument('-c', '--max-count', type=int, default=0, help='maximum number of matrices to generate')
 
@@ -373,7 +373,13 @@ def main(argv = None):
                         version='%(prog)s, v' + version)
                         
     args = parser.parse_args(argv[1:])
+    print args
 
+    # default to min weight of 2n + 1: should give first non-trivial matrices
+    if args.min_weight is None:
+        args.min_weight = 2 * args.dim + 1
+
+    # default to max weight = min weight
     if args.max_weight is None:
         args.max_weight = args.min_weight
 
