@@ -27,6 +27,9 @@ def test_lattice_by_rows(length, start, stop, print_matrices=False):
         for mat in generate_lattice_matrices_in_shell(length, length, distsquared):
             totalcount += 1
 
+            # for row in mat:
+            #     print row_gcd(row)
+
             det = determinant(mat)
 
             if (det == 1 or det == -1):
@@ -55,10 +58,10 @@ def test_suite():
 
 def test_suite_matrices():
     arguments = {
-        'length': 2,
+        'length': 4,
         'start': 1,
-        'stop': 50,
-        'print_matrices': True
+        'stop': 12,
+        'print_matrices': False
     }
 
     tests = [

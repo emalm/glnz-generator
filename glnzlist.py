@@ -4,6 +4,7 @@
 import sys
 import argparse
 import textwrap
+from fractions import gcd
 
 version = '0.1'
 
@@ -67,6 +68,15 @@ def row_is_positive(row):
         elif element == 0:
             continue
     return True
+
+
+def row_gcd(row):
+    accum = 0
+
+    for elt in row:
+        accum = gcd(accum, elt)
+
+    return abs(accum)
 
 
 def row_is_elementary(row):
@@ -134,7 +144,7 @@ def pretty_matrix_row(row):
 row_cache = {}
 
 def generate_good_rows_in_shell(length, distsquared):
-    """Generate all 'good' rows (positive, non-elementary) for a given length and weight. Caches lists of rows for future reference."""
+    """Generate all 'good' rows (positive, non-elementary, gcd 1) for a given length and weight. Caches lists of rows for future reference."""
     if length not in row_cache:
         row_cache[length] = {}
 
@@ -149,6 +159,7 @@ def generate_good_rows_in_shell(length, distsquared):
 
         for row in row_generator:
             if (row_is_positive(row)
+                and row_gcd(row) == 1
                 and not row_is_elementary(row)
                 ):
                 rows.append(row)
@@ -240,6 +251,9 @@ class PrettyFormatter(object):
         if 'dim' in stats:
             lines.append("Matrix dimension: {}".format(stats['dim']))
 
+        if 'det' in stats:
+            lines.append("Matrix determinant: {}".format(stats['det']))
+
         if 'min_weight' in stats:
             lines.append("Starting weight: {}".format(stats['min_weight']))
 
@@ -262,19 +276,19 @@ class ListFormatter(object):
     """Output matrices in a list, packaged in a dictionary with optional generation statistics."""
     @staticmethod
     def start_list():
-        return "'matrix_list': [\n"
+        return "'matrix_list': ["
 
     @staticmethod
     def end_list():
-        return "],\n"
+        return "],"
 
     @staticmethod
     def start_output():
-        return "{\n"
+        return "{"
 
     @staticmethod
     def end_output():
-        return "}\n"
+        return "}"
 
     @staticmethod
     def matrix(mat):
@@ -292,7 +306,7 @@ format_lookup = {
     'l': ListFormatter,
 }
 
-def print_matrix_list(dim, min_weight, max_weight, format, stats, max_count=0):
+def print_matrix_list(dim, det, min_weight, max_weight, format, stats, max_count=0):
     """Print all valid matrices of a given size in a weight range."""
     formatter = format_lookup[format]
 
@@ -301,26 +315,27 @@ def print_matrix_list(dim, min_weight, max_weight, format, stats, max_count=0):
 
     check_count = (max_count > 0)
 
-    print formatter.start_output(),
-    print formatter.start_list(),
+    print formatter.start_output()
+    print formatter.start_list()
 
     for mat in generate_all_matrices(dim, min_weight, max_weight):
         count_all += 1
 
-        det = determinant(mat)
+        mat_det = determinant(mat)
 
-        if (det == 1 or det == -1):
+        if (mat_det == det or mat_det == -det):
             count_valid += 1
             print formatter.matrix(transpose(mat)),
 
         if check_count and count_valid >= max_count:
             break
 
-    print formatter.end_list(),
+    print formatter.end_list()
 
     if stats:
         stat_dict = {
             'dim': dim,
+            'det': det,
             'min_weight': min_weight,
             'max_weight': max_weight,
             'valid_matrix_count': count_valid,
@@ -332,7 +347,7 @@ def print_matrix_list(dim, min_weight, max_weight, format, stats, max_count=0):
 
         print formatter.stats(stat_dict),
 
-    print formatter.end_output(),
+    print formatter.end_output()
 
 
 # Main routine
@@ -345,16 +360,19 @@ def main(argv = None):
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=textwrap.dedent("""
-        Enumerates integer matrices of determinant ±1, ordered by increasing
-            distance-squared weight.
+        Enumerates integer matrices of determinant ±1 (or ±D), ordered by
+            increasing distance-squared weight.
 
         Normalizations and eliminations:
         * Each column starts with a positive number.
         * Columns are listed in decreasing lexicographic order.
+        * The GCD of each column is 1.
         * No column is a standard basis vector.
         """))
 
     parser.add_argument('-n', '--dim', type=int, default=3, help='matrix dimension')
+
+    parser.add_argument('-d', '--det', type=int, default=1, help='desired determinant of matrix')
 
     parser.add_argument('-a', '--min-weight', type=int, help='starting matrix weight')
 
@@ -373,7 +391,6 @@ def main(argv = None):
                         version='%(prog)s, v' + version)
                         
     args = parser.parse_args(argv[1:])
-    print args
 
     # default to min weight of 2n + 1: should give first non-trivial matrices
     if args.min_weight is None:
