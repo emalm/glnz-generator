@@ -71,6 +71,7 @@ def row_is_positive(row):
 
 
 def row_gcd(row):
+    """Compute the gcd of a row."""
     accum = 0
 
     for elt in row:
@@ -80,7 +81,7 @@ def row_gcd(row):
 
 
 def row_is_elementary(row):
-    """Check whethe a row is elementary (that is, a standard basis vector)."""
+    """Check whether a row is elementary (that is, a standard basis vector)."""
     zero_count = 0
     one_count = 0
     for element in row:
@@ -127,7 +128,7 @@ def pretty_matrix(matrix):
 def pretty_matrix_row(row):
     output = '| '
 
-    # maybe parametrize this in the future
+    # TODO MAYBE: parametrize width in format
     template = "{:>3} "
 
     for element in row:
@@ -370,17 +371,32 @@ def main(argv = None):
         * No column is a standard basis vector.
         """))
 
-    parser.add_argument('-n', '--dim', type=int, default=3, help='matrix dimension')
+    parser.add_argument('-n', '--dim',
+        type=int,
+        default=3,
+        help='matrix dimension')
 
-    parser.add_argument('-d', '--det', type=int, default=1, help='desired determinant of matrix')
+    parser.add_argument('-d', '--det',
+        type=int,
+        default=1,
+        help='desired determinant of matrix')
 
-    parser.add_argument('-a', '--min-weight', type=int, help='starting matrix weight')
+    parser.add_argument('-a', '--min-weight',
+        type=int,
+        help='starting matrix weight')
 
-    parser.add_argument('-z', '--max-weight', type=int, help='ending matrix weight')
+    parser.add_argument('-z', '--max-weight',
+        type=int,
+        help='ending matrix weight')
 
-    parser.add_argument('-c', '--max-count', type=int, default=0, help='maximum number of matrices to generate')
+    parser.add_argument('-c', '--max-count',
+        type=int,
+        default=0,
+        help='maximum number of matrices to generate')
 
-    parser.add_argument('-s', '--stats', action='store_true', help='print some stats when done')
+    parser.add_argument('-s', '--stats',
+        action='store_true',
+        help='print some stats when done')
 
     parser.add_argument('-f', '--format',
         choices=['pretty', 'p', 'list', 'l'],
